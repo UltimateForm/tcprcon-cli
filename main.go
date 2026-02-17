@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/UltimateForm/tcprcon/cmd"
+	"github.com/UltimateForm/tcprcon-cli/cmd"
 )
 
 func main() {

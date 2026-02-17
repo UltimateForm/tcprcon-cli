@@ -1,5 +1,5 @@
-github.com/UltimateForm/tcprcon v0.0.0-20260217020208-755298235edd h1:Kr+dOv607VpoNuLkrVB0CP6G7GxPJGPmJ4s5/yLwlKQ=
-github.com/UltimateForm/tcprcon v0.0.0-20260217020208-755298235edd/go.mod h1:Gz2LHhckr0CDKTHhu3l9mqPnbmIvuTA9+qjCfzRzxYE=
+github.com/UltimateForm/tcprcon v1.0.0 h1:hPrG0ruUw4RfRw1sqo5GX3PoHIGdi6os/J2agc5ETzk=
+github.com/UltimateForm/tcprcon v1.0.0/go.mod h1:RYrjyiorIt2xTcF+QYT3C5TSTZATcg8mv1uGrOTmwBc=
 golang.org/x/sys v0.39.0 h1:CvCKL8MeisomCi6qNZ+wbb0DN9E5AATixKsvNtMoMFk=
 golang.org/x/sys v0.39.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
 golang.org/x/term v0.38.0 h1:PQ5pkm/rLO6HnxFR7N2lJHOZX6Kez5Y1gDSJla6jo7Q=
