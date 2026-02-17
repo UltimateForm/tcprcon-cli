@@ -1,8 +1,0 @@
-package packet
-
-const (
-	SERVERDATA_AUTH           int32 = 3
-	SERVERDATA_AUTH_RESPONSE  int32 = 2
-	SERVERDATA_EXECCOMMAND    int32 = 2
-	SERVERDATA_RESPONSE_VALUE int32 = 0
-)
