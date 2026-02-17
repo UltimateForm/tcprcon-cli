@@ -9,7 +9,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/UltimateForm/tcprcon/internal/ansi"
+	"github.com/UltimateForm/tcprcon-cli/internal/ansi"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
 )
