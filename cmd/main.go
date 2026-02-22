@@ -11,8 +11,9 @@ import (
 	"strings"
 
 	"github.com/UltimateForm/tcprcon-cli/internal/ansi"
-	"github.com/UltimateForm/tcprcon/pkg/logger"
+	"github.com/UltimateForm/tcprcon-cli/internal/config"
 	"github.com/UltimateForm/tcprcon/pkg/common_rcon"
+	"github.com/UltimateForm/tcprcon/pkg/logger"
 	"github.com/UltimateForm/tcprcon/pkg/packet"
 	"github.com/UltimateForm/tcprcon/pkg/rcon"
 	"golang.org/x/term"
@@ -23,29 +24,35 @@ var portParam uint
 var passwordParam string
 var logLevelParam uint
 var inputCmdParam string
+var saveParam string
+var profileParam string
 
 func init() {
 	flag.StringVar(&addressParam, "address", "localhost", "RCON address, excluding port")
 	flag.UintVar(&portParam, "port", 7778, "RCON port")
 	flag.StringVar(&passwordParam, "pw", "", "RCON password, if not provided will attempt to load from env variables, if unavailable will prompt")
-	flag.UintVar(&logLevelParam, "log", logger.LevelWarning, "sets log level (syslog serverity tiers) for execution")
+	flag.UintVar(&logLevelParam, "log", logger.LevelWarning, "sets log level (syslog severity tiers) for execution")
 	flag.StringVar(&inputCmdParam, "cmd", "", "command to execute, if provided will not enter into interactive mode")
+	flag.StringVar(&saveParam, "save", "", "saves current connection parameters as a profile, value is the profile name")
+	flag.StringVar(&profileParam, "profile", "", "loads a saved profile by name, overriding default flags but overridden by explicit flags")
 }
 
-func determinePassword() (string, error) {
-	if len(passwordParam) > 0 {
-		logger.Debug.Println("using password from parameter")
-		return passwordParam, nil
+func determinePassword(currentPw string) (string, error) {
+	if len(currentPw) > 0 {
+		logger.Debug.Println("using password from parameter or profile")
+		return currentPw, nil
 	}
+
 	envPassword := os.Getenv("rcon_password")
 	var password string
+
 	if len(envPassword) > 0 {
 		logger.Debug.Println("using password from os env")
 		r := ""
+		reader := bufio.NewReader(os.Stdin)
 		for r == "" {
-			fmt.Print("RCON password found in environment variables, use for authentication? (y/n) ")
-			stdinread := bufio.NewReader(os.Stdin)
-			stdinbytes, _isPrefix, err := stdinread.ReadLine()
+			fmt.Print("RCON password found in environment variables, use for authentication? [y/N] ")
+			stdinbytes, _isPrefix, err := reader.ReadLine()
 			if err != nil {
 				return "", err
 			}
@@ -59,6 +66,7 @@ func determinePassword() (string, error) {
 			password = envPassword
 		}
 	}
+
 	if len(password) == 0 {
 		fmt.Print("RCON PASSWORD: ")
 		stdinbytes, err := term.ReadPassword(int(os.Stdin.Fd()))
@@ -97,13 +105,55 @@ func Execute() {
 	flag.Parse()
 	logLevel := uint8(logLevelParam)
 	logger.Setup(logLevel)
-	logger.Debug.Printf("parsed parameters: address=%v, port=%v, pw=%v, log=%v, cmd=%v\n", addressParam, portParam, passwordParam != "", logLevelParam, inputCmdParam)
-	fullAddress := addressParam + ":" + strconv.Itoa(int(portParam))
-	password, err := determinePassword()
+
+	resolvedAddress, resolvedPort, resolvedPassword, err := config.Resolve(profileParam, addressParam, portParam, passwordParam)
 	if err != nil {
 		logger.Critical.Fatal(err)
 	}
-	logger.Debug.Printf("Dialing %v at port %v\n", addressParam, portParam)
+
+	logger.Debug.Printf("resolved parameters: address=%v, port=%v, pw=%v, log=%v, cmd=%v\n", resolvedAddress, resolvedPort, resolvedPassword != "", logLevelParam, inputCmdParam)
+
+	fullAddress := resolvedAddress + ":" + strconv.Itoa(int(resolvedPort))
+	password, err := determinePassword(resolvedPassword)
+	if err != nil {
+		logger.Critical.Fatal(err)
+	}
+
+	// TODO: consider moving to config lib
+	if saveParam != "" {
+		cfg, loadErr := config.Load()
+		if loadErr != nil {
+			logger.Critical.Fatal(errors.Join(errors.New("failed to load config for saving"), loadErr))
+		}
+
+		newProfile := config.Profile{
+			Address: resolvedAddress,
+			Port:    resolvedPort,
+		}
+
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Printf("Save password to config file? (stored in %v with restricted file permissions) [y/N]: ", ansi.Format("plaintext", ansi.Red, ansi.Bold))
+		savePwChoice, prefix, _ := reader.ReadLine()
+		if prefix {
+			logger.Err.Println("prefix handling not implemented")
+		}
+		if strings.ToLower(strings.TrimSpace(string(savePwChoice))) == "y" {
+			newProfile.Password = password
+		}
+
+		cfg.SetProfile(saveParam, newProfile)
+		if saveErr := cfg.Save(); saveErr != nil {
+			logger.Critical.Fatal(errors.Join(errors.New("failed to save config file"), saveErr))
+		}
+		configFilePath, pathErr := config.GetConfigPath()
+		if pathErr != nil {
+			logger.Critical.Fatal(errors.Join(errors.New("failed to get config file path for display"), pathErr))
+		}
+		logger.Info.Printf("Profile '%s' saved successfully to %s\n", saveParam, configFilePath)
+		// TODO: consider exiting here if user calls cli with "save" param, maybe he just setting profile and dont want to run the full thing idk
+	}
+
+	logger.Debug.Printf("Dialing %v at port %v\n", resolvedAddress, resolvedPort)
 	rconClient, err := rcon.New(fullAddress)
 	if err != nil {
 		logger.Critical.Fatal(err)

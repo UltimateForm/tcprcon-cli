@@ -7,6 +7,7 @@
     - [Interactive Mode](#interactive-mode)
     - [Single Command Mode](#single-command-mode)
     - [Using Environment Variable for Password](#using-environment-variable-for-password)
+  - [Configuration Profiles](#configuration-profiles)
   - [CLI Flags](#cli-flags)
   - [Using as a Library](#using-as-a-library)
     - [Streaming Responses](#streaming-responses)
@@ -64,6 +65,35 @@ export rcon_password="your_password"
 tcprcon-cli --address=192.168.1.100
 ```
 
+## Configuration Profiles
+
+`tcprcon-cli` supports saving and loading connection profiles to a local configuration file, located at `~/.config/tcprcon/config.json` on Linux/macOS or `%AppData%\tcprcon\config.json` on Windows.
+
+### Saving a Profile
+
+You can save your current connection parameters (address, port, and optionally password) to a named profile using the `--save` flag.
+
+```bash
+# Connect to a server and save its details as "my_server"
+tcprcon-cli --address=192.168.1.100 --port=7778 --pw="mysecret" --save="my_server"
+```
+When saving, you will be prompted if you wish to store the password. If you choose 'y', the password will be saved in plaintext within the `config.json` file with restricted `0600` file permissions (read/write only by owner). If you choose 'n' or omit the password, you will be prompted for it when loading the profile.
+
+### Loading a Profile
+
+To load a previously saved profile, use the `--profile` flag.
+
+```bash
+# Load the "my_server" profile
+tcprcon-cli --profile="my_server"
+```
+
+Explicit CLI flags will always override values from a loaded profile. For example:
+```bash
+# Load "my_server" but connect to a different port
+tcprcon-cli --profile="my_server" --port=27015
+```
+
 ## CLI Flags
 
 ```
@@ -75,8 +105,12 @@ tcprcon-cli --address=192.168.1.100
     	sets log level (syslog severity tiers) for execution (default 4)
   -port uint
     	RCON port (default 7778)
+  -profile string
+    	loads a saved profile by name, overriding default flags but overridden by explicit flags.
   -pw string
     	RCON password, if not provided will attempt to load from env variables, if unavailable will prompt
+  -save string
+    	saves current connection parameters as a profile. Value is the profile name.
 ```
 
 ## Using as a Library
