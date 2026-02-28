@@ -1,12 +1,5 @@
 name: tcprcon
 services:
-  cli:
-    container_name: cli
-    build: .
-    mh-server:
-      condition: service_healthy
-      restart: true
-
   mh-server:
     image: ghcr.io/gameservermanagers/gameserver:mh
     container_name: mhserver
@@ -19,15 +12,15 @@ services:
     network_mode: host
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "nc", "-w 5", "localhost 7777"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      test: ["CMD", "nc", "-z", "localhost", "12512"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     volumes:
       - linuxgsm-mh:/data
-      - .serverdata/common.cfg:/data/config-lgsm/mhserver/common.cfg
-      - .serverdata/Game.ini:/data/serverfiles/Mordhau/Saved/Config/LinuxServer/Game.ini
+      - .serverdata/mh/common.cfg:/data/config-lgsm/mhserver/common.cfg
+      - .serverdata/mh/Game.ini:/data/serverfiles/Mordhau/Saved/Config/LinuxServer/Game.ini
 
 volumes:
   linuxgsm-mh:
