@@ -1,6 +1,7 @@
 # tcprcon-cli
 
 - [tcprcon-cli](#tcprcon-cli)
+  - [Local Development](#local-development)
   - [Features](#features)
   - [Installation](#installation)
   - [Usage](#usage)
@@ -19,6 +20,41 @@ A fully native RCON client implementation, zero third parties*
 <sub>*except for other golang maintained packages about terminal emulators, until i fully master tty :(</sub>
 
 ![tcprcon-cli demo](.meta/demo.png)
+
+## Local Development
+
+You can use the provided `Makefile` and `compose.yaml` to spin up a local development environment. This will start a Mordhau game server in a container.
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Go 1.22+
+- Make (optional, but recommended)
+
+### Getting Started
+
+1. **Start the Game Server**:
+   ```bash
+   make lift-mh-server
+   ```
+   *Note: The server uses `network_mode: host` and may take a few minutes to fully initialize, make sure network_mode is supported by your docker engine*
+
+2. **Build and Run the Client**:
+   ```bash
+   make run
+   ```
+   This will build the `tcprcon-cli` binary into `.out/` and execute it against the local server (see step 1) using the default development credentials.
+
+3. **Run Tests**:
+   ```bash
+   make test
+   ```
+
+4. **Dockerized Client**:
+   If you prefer to run the client itself inside a container:
+   ```bash
+   make run-docker
+   ```
 
 ## Features
 
