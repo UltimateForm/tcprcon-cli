@@ -11,4 +11,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build
-        run: make docker-build
+        run: make build-docker
