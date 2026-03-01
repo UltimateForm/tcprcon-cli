@@ -24,18 +24,22 @@ const (
 	configFileName = "config.json"
 )
 
-func GetConfigPath() (string, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
+func BuildConfigPath(basePath string) (string, error) {
+	if basePath == "" {
+		return "", ErrUndefinedConfigBasePath
 	}
+	// configDir, err := os.UserConfigDir()
+	// if err != nil {
+	// 	return "", err
+	// }
 
-	fullPath := filepath.Join(configDir, configDirName)
+	fullPath := filepath.Join(basePath, configDirName)
 	return filepath.Join(fullPath, configFileName), nil
 }
 
-func Load() (*Config, error) {
-	path, err := GetConfigPath()
+func Load(baseConfigPath string) (*Config, error) {
+
+	path, err := BuildConfigPath(baseConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +66,8 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
-func (source *Config) Save() error {
-	path, err := GetConfigPath()
+func (source *Config) Save(configBasePath string) error {
+	path, err := BuildConfigPath(configBasePath)
 	if err != nil {
 		return err
 	}
@@ -97,8 +101,8 @@ func (source *Config) SetProfile(name string, p Profile) {
 	source.Profiles[name] = p
 }
 
-func Resolve(profileName string, addrFlag string, portFlag uint, pwFlag string) (string, uint, string, error) {
-	cfg, err := Load()
+func Resolve(configBasePath string, profileName string, addrFlag string, portFlag uint, pwFlag string) (string, uint, string, error) {
+	cfg, err := Load(configBasePath)
 	if err != nil {
 		return "", 0, "", err
 	}

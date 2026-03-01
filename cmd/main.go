@@ -105,8 +105,17 @@ func Execute() {
 	flag.Parse()
 	logLevel := uint8(logLevelParam)
 	logger.Setup(logLevel)
-
-	resolvedAddress, resolvedPort, resolvedPassword, err := config.Resolve(profileParam, addressParam, portParam, passwordParam)
+	configBasePath, err := os.UserConfigDir()
+	if err != nil {
+		logger.Critical.Fatal(err)
+	}
+	resolvedAddress, resolvedPort, resolvedPassword, err := config.Resolve(
+		configBasePath,
+		profileParam,
+		addressParam,
+		portParam,
+		passwordParam,
+	)
 	if err != nil {
 		logger.Critical.Fatal(err)
 	}
@@ -121,7 +130,7 @@ func Execute() {
 
 	// TODO: consider moving to config lib
 	if saveParam != "" {
-		cfg, loadErr := config.Load()
+		cfg, loadErr := config.Load(configBasePath)
 		if loadErr != nil {
 			logger.Critical.Fatal(errors.Join(errors.New("failed to load config for saving"), loadErr))
 		}
@@ -142,10 +151,10 @@ func Execute() {
 		}
 
 		cfg.SetProfile(saveParam, newProfile)
-		if saveErr := cfg.Save(); saveErr != nil {
+		if saveErr := cfg.Save(configBasePath); saveErr != nil {
 			logger.Critical.Fatal(errors.Join(errors.New("failed to save config file"), saveErr))
 		}
-		configFilePath, pathErr := config.GetConfigPath()
+		configFilePath, pathErr := config.BuildConfigPath(configBasePath)
 		if pathErr != nil {
 			logger.Critical.Fatal(errors.Join(errors.New("failed to get config file path for display"), pathErr))
 		}
