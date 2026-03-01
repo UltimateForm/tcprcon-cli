@@ -10,6 +10,7 @@
     - [Using Environment Variable for Password](#using-environment-variable-for-password)
   - [Configuration Profiles](#configuration-profiles)
   - [CLI Flags](#cli-flags)
+  - [Protocol Compliance](#protocol-compliance)
   - [Using as a Library](#using-as-a-library)
     - [Streaming Responses](#streaming-responses)
   - [License](#license)
@@ -33,9 +34,18 @@ You can use the provided `Makefile` and `compose.yaml` to spin up a local develo
 
 ### Getting Started
 
-1. **Start the Game Server**:
+1. **Start a Game Server**:
+
+  Beware that the first time you build and run the server it might take a while for its RCON port to be usable, not sure why, but Rust one for example took a few minutes before it was responding, idk.
+
    ```bash
-   make lift-mh-server
+   make lift-mh-server 
+   ```
+   
+   or 
+    
+   ```bash
+   make lift-rust-server
    ```
    *Note: The server uses `network_mode: host` and may take a few minutes to fully initialize, make sure network_mode is supported by your docker engine*
 
@@ -148,6 +158,12 @@ tcprcon-cli --profile="my_server" --port=27015
   -save string
     	saves current connection parameters as a profile. Value is the profile name.
 ```
+
+## Protocol Compliance
+
+While `tcprcon-cli` follows the standard Source RCON Protocol, some game servers (like Rust) have non-standard implementations that might cause unexpected behavior, such as duplicated responses or incorrect packet IDs, the cli should still work, you might just have to deal with an overly chatty server.
+
+For a detailed breakdown of known server quirks and how they are handled, see the [Caveats section in the core library documentation](https://github.com/UltimateForm/tcprcon#caveats).
 
 ## Using as a Library
 

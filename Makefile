@@ -4,11 +4,14 @@ RCON_PORT=7778
 lift-mh-server:
 	docker compose run mh-server
 
+lift-rust-server:
+	docker compose run rust-server
+
 build:
 	go build -o .out/tcprcon
 
 run: build
-	go run . -address=localhost -port=${RCON_PORT} -pw=${RCON_PASSWORD}
+	.out/tcprcon -address=localhost -port=${RCON_PORT} -pw=${RCON_PASSWORD}
 
 test:
 	go test ./...

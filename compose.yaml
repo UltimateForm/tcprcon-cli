@@ -12,7 +12,7 @@ services:
     network_mode: host
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "12512"]
+      test: ["CMD", "nc", "-z", "localhost", "7778"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -22,5 +22,23 @@ services:
       - .serverdata/mh/common.cfg:/data/config-lgsm/mhserver/common.cfg
       - .serverdata/mh/Game.ini:/data/serverfiles/Mordhau/Saved/Config/LinuxServer/Game.ini
 
+  rust-server:
+    image: ghcr.io/gameservermanagers/gameserver:rust
+    container_name: rustserver
+    restart: unless-stopped
+    ports:
+      - "7778:7778"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "7778"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    volumes:
+      - linuxgsm-rust:/data
+      - .serverdata/rust/common.cfg:/data/config-lgsm/rustserver/common.cfg
+    network_mode: host
+
 volumes:
   linuxgsm-mh:
+  linuxgsm-rust:
