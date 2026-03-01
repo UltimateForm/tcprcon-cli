@@ -61,7 +61,7 @@ func TestShouldSaveToConfig(t *testing.T) {
 	filePath := filepath.Join(baseConfigPath, configDirName, configFileName)
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
-		t.Fatal(errors.Join(errors.New("unexpect file stat error"), err))
+		t.Fatal(errors.Join(errors.New("unexpected file stat error"), err))
 	}
 	if fileMode := fileInfo.Mode(); fileMode.Perm() != 0600 {
 		t.Errorf("unxpected file mode: %v, expected 0600", fileMode)
