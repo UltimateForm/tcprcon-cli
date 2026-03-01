@@ -31,19 +31,55 @@ func TestShouldLoadWhenFileExists(t *testing.T) {
 
 	cfg, err := Load(baseConfigPath)
 	if err != nil {
-		t.Error(errors.Join(errors.New("unexpected error loading config"), err))
+		t.Fatal(errors.Join(errors.New("unexpected error loading config"), err))
 	}
 	if cfg == nil {
-		t.Error("unexpected nil config")
-	}
-	if len(cfg.Profiles) == 0 {
-		t.Error("unexpected zero-length profiles")
+		t.Fatal("unexpected nil config")
 	}
 	profile, exists := cfg.GetProfile("docker")
 	if !exists {
-		t.Error("unexpected profile (docker) absence in loaded config")
+		t.Fatal("unexpected profile (docker) absence in loaded config")
 	}
 	if profile != sourceProfile {
-		t.Errorf("unexpected mismatching loaded data, expected: %+v; received: %+v", sourceProfile, profile)
+		t.Fatalf("unexpected mismatching loaded data, expected: %+v; received: %+v", sourceProfile, profile)
+	}
+}
+
+func TestShouldSaveToConfig(t *testing.T) {
+	baseConfigPath := t.TempDir()
+	sourceProfile := Profile{
+		Address:  "localhost",
+		Port:     7778,
+		Password: "localpassword",
+	}
+	sourceConfig := Config{
+		Profiles: map[string]Profile{
+			"docker": sourceProfile,
+		},
+	}
+	sourceConfig.Save(baseConfigPath)
+	filePath := filepath.Join(baseConfigPath, configDirName, configFileName)
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		t.Fatal(errors.Join(errors.New("unexpect file stat error"), err))
+	}
+	if fileMode := fileInfo.Mode(); fileMode.Perm() != 0600 {
+		t.Errorf("unxpected file mode: %v, expected 0600", fileMode)
+	}
+	fileBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatal(errors.Join(errors.New("unexpected file read error"), err))
+	}
+	var cfg Config
+	err = json.Unmarshal(fileBytes, &cfg)
+	if err != nil {
+		t.Fatal(errors.Join(errors.New("unexpected json unmarshal error"), err))
+	}
+	profile, exists := cfg.GetProfile("docker")
+	if !exists {
+		t.Fatal("unexpected profile (docker) absence in loaded config")
+	}
+	if profile != sourceProfile {
+		t.Fatalf("unexpected mismatching loaded data, expected: %+v; received: %+v", sourceProfile, profile)
 	}
 }
