@@ -11,7 +11,7 @@ build:
 	go build -o .out/tcprcon
 
 run: build
-	go run . -address=localhost -port=${RCON_PORT} -pw=${RCON_PASSWORD}
+	.out/tcprcon -address=localhost -port=${RCON_PORT} -pw=${RCON_PASSWORD}
 
 test:
 	go test ./...
