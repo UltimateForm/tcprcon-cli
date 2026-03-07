@@ -28,8 +28,8 @@ var saveParam string
 var profileParam string
 
 func init() {
-	flag.StringVar(&addressParam, "address", "localhost", "RCON address, excluding port")
-	flag.UintVar(&portParam, "port", 7778, "RCON port")
+	flag.StringVar(&addressParam, "address", config.DefaultAddr, "RCON address, excluding port")
+	flag.UintVar(&portParam, "port", config.DefaultPort, "RCON port")
 	flag.StringVar(&passwordParam, "pw", "", "RCON password, if not provided will attempt to load from env variables, if unavailable will prompt")
 	flag.UintVar(&logLevelParam, "log", logger.LevelWarning, "sets log level (syslog severity tiers) for execution")
 	flag.StringVar(&inputCmdParam, "cmd", "", "command to execute, if provided will not enter into interactive mode")

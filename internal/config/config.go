@@ -22,16 +22,14 @@ type Config struct {
 const (
 	configDirName  = "tcprcon"
 	configFileName = "config.json"
+	DefaultAddr    = "localhost"
+	DefaultPort    = 7778
 )
 
 func BuildConfigPath(basePath string) (string, error) {
 	if basePath == "" {
 		return "", ErrUndefinedConfigBasePath
 	}
-	// configDir, err := os.UserConfigDir()
-	// if err != nil {
-	// 	return "", err
-	// }
 
 	fullPath := filepath.Join(basePath, configDirName)
 	return filepath.Join(fullPath, configFileName), nil
@@ -120,10 +118,10 @@ func Resolve(configBasePath string, profileName string, addrFlag string, portFla
 		// only override if the flags are still at their default values
 		// NOTE: this logic assumes defaults are "localhost", 7778, and ""
 		// TODO: this "default" handling can introduce bugs, rethink this at some point
-		if finalAddr == "localhost" && p.Address != "" {
+		if finalAddr == DefaultAddr && p.Address != "" {
 			finalAddr = p.Address
 		}
-		if finalPort == 7778 && p.Port != 0 {
+		if finalPort == DefaultPort && p.Port != 0 {
 			finalPort = p.Port
 		}
 		if finalPw == "" && p.Password != "" {
