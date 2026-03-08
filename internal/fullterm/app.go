@@ -51,6 +51,17 @@ func (src *app) Submissions() <-chan string {
 	return src.submissionChan
 }
 
+func visibleContent(content []string, height int) []string {
+	currentRows := len(content)
+	// ngl i forgot why we adding plus 1.. oh well
+	startRow := max(currentRows-(height+1), 0)
+	return content[startRow:]
+}
+
+func formatCommandEcho(cmd string) string {
+	return ansi.Format("> "+cmd+"\n", ansi.Blue)
+}
+
 func (src *app) DrawContent(finalDraw bool) error {
 	_, height, err := term.GetSize(src.fd)
 	if err != nil {
@@ -59,9 +70,7 @@ func (src *app) DrawContent(finalDraw bool) error {
 	if !finalDraw {
 		fmt.Print(ansi.ClearScreen + ansi.CursorHome)
 	}
-	currentRows := len(src.content)
-	startRow := max(currentRows-(height+1), 0)
-	drawableRows := src.content[startRow:]
+	drawableRows := visibleContent(src.content, height)
 	for i := range drawableRows {
 		fmt.Print(drawableRows[i])
 	}
@@ -115,7 +124,7 @@ func (src *app) Run(context context.Context) error {
 		case newStdinInput := <-src.stdinChannel:
 			newCmd, isSubmission := constructCmdLine(newStdinInput, src.cmdLine)
 			if isSubmission {
-				src.content = append(src.content, ansi.Format("> "+string(newCmd)+"\n", ansi.Blue))
+				src.content = append(src.content, formatCommandEcho(string(newCmd)))
 				src.cmdLine = []byte{}
 				src.submissionChan <- string(newCmd)
 			} else {
