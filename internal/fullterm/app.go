@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 
@@ -43,6 +44,7 @@ func (src *app) ListenStdin(context context.Context) {
 			if err != nil {
 				return
 			}
+			src.content = append(src.content, strconv.Itoa(int(b[0]))+"\n")
 			src.stdinChannel <- b[0]
 		}
 	}
