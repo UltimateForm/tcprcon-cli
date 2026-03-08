@@ -16,15 +16,21 @@ type stdinAnsi struct {
 
 func newStdinAnsi() stdinAnsi {
 	return stdinAnsi{
-		buf:   make([]byte, 0),
+		buf:   make([]byte, 0, 8),
 		state: ansiStateIdle,
 	}
 }
 
-func (src *stdinAnsi) handle(b byte) ansiState {
+func (src *stdinAnsi) reset() {
+	src.buf = make([]byte, 0, 8)
+	src.state = ansiStateIdle
+}
+
+func (src *stdinAnsi) handle(b byte) ([]byte, ansiState) {
 	switch {
 	case b == 27:
-		src.buf = []byte{b}
+		src.reset()
+		src.buf = append(src.buf, b)
 		src.state = ansiStateEscape
 	case b == 91 && src.state == ansiStateEscape:
 		src.buf = append(src.buf, b)
@@ -37,6 +43,8 @@ func (src *stdinAnsi) handle(b byte) ansiState {
 			}()
 			src.state = ansiStateCSITerm
 		}
+	default:
+		src.reset()
 	}
-	return src.state
+	return src.buf, src.state
 }

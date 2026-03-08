@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"sync"
 	"syscall"
 
@@ -21,10 +20,12 @@ type app struct {
 	stdinChannel     chan byte
 	fd               int
 	prevState        *term.State
-	cmdLine          []byte
 	content          []string
 	commandSignature string
 	once             sync.Once
+	ansiMachine      stdinAnsi
+	history          [][]byte
+	historyCursor    int
 }
 
 func (src *app) Write(bytes []byte) (int, error) {
@@ -44,11 +45,23 @@ func (src *app) ListenStdin(context context.Context) {
 			if err != nil {
 				return
 			}
-			src.content = append(src.content, strconv.Itoa(int(b[0]))+"\n")
 			src.stdinChannel <- b[0]
 		}
 	}
 }
+
+func (src *app) setHistoryTail(b []byte) {
+	src.history[len(src.history)-1] = b
+}
+
+func (src *app) historyTail() []byte {
+	return src.history[len(src.history)-1]
+}
+
+func (src *app) currentCmd() []byte {
+	return src.history[src.historyCursor]
+}
+
 func (src *app) Submissions() <-chan string {
 	return src.submissionChan
 }
@@ -82,8 +95,12 @@ func (src *app) DrawContent(finalDraw bool) error {
 	}
 	ansi.MoveCursorTo(height, 0)
 	fmt.Printf(ansi.Format("%v> ", ansi.Blue), src.commandSignature)
-	fmt.Print(string(src.cmdLine))
+	fmt.Print(string(src.currentCmd()))
 	return nil
+}
+
+func (src *app) traverseHistory(delta int) {
+	src.historyCursor = clamp(0, src.historyCursor+delta, len(src.history)-1)
 }
 
 func (src *app) Run(context context.Context) error {
@@ -124,14 +141,40 @@ func (src *app) Run(context context.Context) error {
 		case <-context.Done():
 			return nil
 		case newStdinInput := <-src.stdinChannel:
-			newCmd, isSubmission := constructCmdLine(newStdinInput, src.cmdLine)
-			if isSubmission {
-				src.content = append(src.content, formatCommandEcho(string(newCmd)))
-				src.cmdLine = []byte{}
-				src.submissionChan <- string(newCmd)
-			} else {
-				src.cmdLine = newCmd
+			ansiSeq, ansiState := src.ansiMachine.handle(newStdinInput)
+			// src.content = append(src.content, fmt.Sprintf("ansi machine handling %v, at state %v\n", ansiSeq, ansiState))
+			switch ansiState {
+			case ansiStateIdle:
+				// no ansi sequence ongoing so its just presentation bytes
+				newCmd, isSubmission := constructCmdLine(newStdinInput, src.currentCmd())
+				if isSubmission {
+					src.content = append(src.content, formatCommandEcho(string(newCmd)))
+					if len(src.historyTail()) > 0 {
+						src.history = append(src.history, []byte{})
+					}
+					src.submissionChan <- string(newCmd)
+				} else {
+					src.setHistoryTail(newCmd)
+				}
+				// feel a bit awkward doing this every input stroke, we can get back to it later
+				src.historyCursor = len(src.history) - 1
+			case ansiStateCSITerm:
+				switch string(ansiSeq) {
+				case ansi.ArrowKeyUp:
+					src.traverseHistory(-1)
+				case ansi.ArrowKeyDown:
+					src.traverseHistory(1)
+				case ansi.PageUpKey:
+				//tbd
+				case ansi.PageDownKey:
+				//tbd
+				default:
+					// src.content = append(src.content, fmt.Sprintf("unhandled csi %v, %v\n", strconv.Itoa(int(ansiState)), ansiSeq))
+				}
+			default:
+				// src.content = append(src.content, fmt.Sprintf("unhandled state %v, %v\n", strconv.Itoa(int(ansiState)), ansiSeq))
 			}
+
 			if err := src.DrawContent(false); err != nil {
 				return err
 			}
@@ -166,5 +209,8 @@ func CreateApp(commandSignature string) *app {
 		submissionChan:   submissionChan,
 		content:          make([]string, 0),
 		commandSignature: commandSignature,
+		ansiMachine:      newStdinAnsi(),
+		history:          [][]byte{[]byte{}},
+		historyCursor:    0,
 	}
 }
