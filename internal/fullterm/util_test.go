@@ -73,3 +73,33 @@ func TestConstructCmdLineSubmissionLF(t *testing.T) {
 		t.Errorf("expected 'test', got '%s'", newLine)
 	}
 }
+
+func TestClamp(t *testing.T) {
+	minBound := 4
+	maxBound := 23
+	n := 11
+	r := clamp(minBound, n, maxBound)
+	if r != n {
+		t.Fatalf("expect r to equal %v but instead it is %v", n, r)
+	}
+}
+
+func TestClampGreaterThanMax(t *testing.T) {
+	minBound := 2
+	maxBound := 5
+	n := 12
+	r := clamp(minBound, n, maxBound)
+	if r != maxBound {
+		t.Fatalf("expect r to equal %v but instead it is %v", maxBound, r)
+	}
+}
+
+func TestClampLesserThanMin(t *testing.T) {
+	minBound := 202
+	maxBound := 582
+	n := 105
+	r := clamp(minBound, n, maxBound)
+	if r != minBound {
+		t.Fatalf("expect r to equal %v but instead it is %v", minBound, r)
+	}
+}
