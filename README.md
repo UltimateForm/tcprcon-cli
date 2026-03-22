@@ -7,6 +7,7 @@
   - [Usage](#usage)
     - [Interactive Mode](#interactive-mode)
     - [Single Command Mode](#single-command-mode)
+    - [Keepalive (Pulse)](#keepalive-pulse)
     - [Using Environment Variable for Password](#using-environment-variable-for-password)
   - [Configuration Profiles](#configuration-profiles)
   - [CLI Flags](#cli-flags)
@@ -69,9 +70,10 @@ You can use the provided `Makefile` and `compose.yaml` to spin up a local develo
 
 ## Features
 
-- **Interactive Terminal UI**: full-screen exclusive TUI (like vim or nano)
+- **Interactive Terminal UI**: full-screen exclusive TUI (like vim or nano) with command history and scrollable output
 - **Single Command Mode**: execute a single RCON command and exit
 - **Multiple Authentication Methods**: supports password via CLI flag, environment variable (`rcon_password`), or secure prompt
+- **Keepalive (Pulse)**: configurable periodic command to keep the connection alive on idle servers
 - **Configurable Logging**: syslog-style severity levels for debugging
 - **Installable as library**: use the RCON client in your own Go projects, ([see examples](#using-as-a-library))
 
@@ -103,6 +105,26 @@ tcprcon-cli --address=192.168.1.100 --port=7778
 
 ```bash
 tcprcon-cli --address=192.168.1.100 --cmd="playerlist"
+```
+
+### Keepalive (Pulse)
+
+To keep the connection alive on idle servers, use `-pulse` with a command your server accepts as a no-op:
+
+```bash
+tcprcon-cli --address=192.168.1.100 --pulse="alive"
+```
+
+The default interval is 60 seconds. Override it with `-pulse-interval`:
+
+```bash
+tcprcon-cli --address=192.168.1.100 --pulse="alive" --pulse-interval=30s
+```
+
+Pulse settings can also be saved to a profile:
+
+```bash
+tcprcon-cli --address=192.168.1.100 --pulse="alive" --pulse-interval=30s --save="my_server"
 ```
 
 ### Using Environment Variable for Password
@@ -154,6 +176,10 @@ tcprcon-cli --profile="my_server" --port=27015
     	RCON port (default 7778)
   -profile string
     	loads a saved profile by name, overriding default flags but overridden by explicit flags.
+  -pulse string
+    	keepalive method: a command sent on a schedule to keep the connection alive
+  -pulse-interval duration
+    	keepalive interval, use Go duration format e.g. 30s, 2m (default 1m0s)
   -pw string
     	RCON password, if not provided will attempt to load from env variables, if unavailable will prompt
   -save string

@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/UltimateForm/tcprcon-cli/internal/ansi"
 	"github.com/UltimateForm/tcprcon-cli/internal/fullterm"
@@ -16,8 +17,29 @@ import (
 	"github.com/UltimateForm/tcprcon/pkg/rcon"
 )
 
-func runRconTerminal(client *rcon.Client, ctx context.Context, logLevel uint8) {
-	app := fullterm.CreateApp(fmt.Sprintf("rcon@%v", client.Address))
+func stayAlive(ctx context.Context, client *rcon.Client, command string, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			id := client.Id()
+			logger.Debug.Printf("sending keepalive packet with id %v", id)
+			pulsePacket := packet.New(client.Id(), packet.SERVERDATA_EXECCOMMAND, []byte(command))
+			// note: potential race condition here, it is possible we send packet at the exact same time the user does, just fyi
+			client.Write(pulsePacket.Serialize())
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func runRconTerminal(ctx context.Context, client *rcon.Client, logLevel uint8, profileName string, pulseCmd string, pulseInterval time.Duration) {
+	signatureProfile := "rcon"
+	if profileName != "" {
+		signatureProfile = profileName
+	}
+	app := fullterm.CreateApp(fmt.Sprintf("%v@%v", signatureProfile, client.Address))
 	// dont worry we are resetting the logger before returning
 	logger.SetupCustomDestination(logLevel, app)
 
@@ -74,9 +96,13 @@ func runRconTerminal(client *rcon.Client, ctx context.Context, logLevel uint8) {
 			}
 		}
 	}
+
 	go submissionReader()
 	go packetReader()
 	go appRun()
+	if pulseCmd != "" {
+		go stayAlive(ctx, client, pulseCmd, pulseInterval)
+	}
 
 	select {
 	case <-ctx.Done():

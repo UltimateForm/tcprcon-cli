@@ -181,26 +181,28 @@ func TestResolveShouldLoadFromConfig(t *testing.T) {
 		},
 	}
 	sourceConfig.Save(baseConfigPath)
-	resolvedAddress, resolvedPort, resolvedPassword, err := Resolve(
+	resolvedProfile, err := Resolve(
 		baseConfigPath,
 		"pleyades",
-		DefaultAddr,
-		DefaultPort,
-		"",
+		Profile{
+			Address:  DefaultAddr,
+			Port:     DefaultPort,
+			Password: "",
+		},
 	)
 
 	if err != nil {
 		t.Fatal(errors.Join(errors.New("unexpected load error"), err))
 	}
 
-	if resolvedAddress != sourceProfile.Address {
-		t.Errorf("expected address %s, but got %s", sourceProfile.Address, resolvedAddress)
+	if resolvedProfile.Address != sourceProfile.Address {
+		t.Errorf("expected address %s, but got %s", sourceProfile.Address, resolvedProfile.Address)
 	}
-	if resolvedPort != sourceProfile.Port {
-		t.Errorf("expected port %d, but got %d", sourceProfile.Port, resolvedPort)
+	if resolvedProfile.Port != sourceProfile.Port {
+		t.Errorf("expected port %d, but got %d", sourceProfile.Port, resolvedProfile.Port)
 	}
-	if resolvedPassword != sourceProfile.Password {
-		t.Errorf("expected password %s, but got %s", sourceProfile.Password, resolvedPassword)
+	if resolvedProfile.Password != sourceProfile.Password {
+		t.Errorf("expected password %s, but got %s", sourceProfile.Password, resolvedProfile.Password)
 	}
 }
 
@@ -222,24 +224,26 @@ func TestResolveShouldNotOverrideExplicitFlags(t *testing.T) {
 	explicitPort := uint(9999)
 	explicitPw := "explicitpassword"
 
-	resolvedAddress, resolvedPort, resolvedPassword, err := Resolve(
+	resolvedProfile, err := Resolve(
 		baseConfigPath,
 		"pleyades",
-		explicitAddr,
-		explicitPort,
-		explicitPw,
+		Profile{
+			Address:  explicitAddr,
+			Port:     explicitPort,
+			Password: explicitPw,
+		},
 	)
 	if err != nil {
 		t.Fatal(errors.Join(errors.New("unexpected resolve error"), err))
 	}
-	if resolvedAddress != explicitAddr {
-		t.Errorf("expected explicit address %s, but got %s", explicitAddr, resolvedAddress)
+	if resolvedProfile.Address != explicitAddr {
+		t.Errorf("expected explicit address %s, but got %s", explicitAddr, resolvedProfile.Address)
 	}
-	if resolvedPort != explicitPort {
-		t.Errorf("expected explicit port %d, but got %d", explicitPort, resolvedPort)
+	if resolvedProfile.Port != explicitPort {
+		t.Errorf("expected explicit port %d, but got %d", explicitPort, resolvedProfile.Port)
 	}
-	if resolvedPassword != explicitPw {
-		t.Errorf("expected explicit password %s, but got %s", explicitPw, resolvedPassword)
+	if resolvedProfile.Password != explicitPw {
+		t.Errorf("expected explicit password %s, but got %s", explicitPw, resolvedProfile.Password)
 	}
 }
 
@@ -250,7 +254,12 @@ func TestResolveShouldReturnErrorForMissingProfile(t *testing.T) {
 	}
 	emptyConfig.Save(baseConfigPath)
 
-	_, _, _, err := Resolve(baseConfigPath, "nonexistent", DefaultAddr, DefaultPort, "")
+	_, err := Resolve(baseConfigPath, "nonexistent", Profile{
+		Address:  DefaultAddr,
+		Port:     DefaultPort,
+		Password: "",
+	},
+	)
 	if err == nil {
 		t.Fatal("expected error for missing profile, got nil")
 	}
@@ -259,24 +268,26 @@ func TestResolveShouldReturnErrorForMissingProfile(t *testing.T) {
 func TestResolveShouldReturnDefaultsWhenNoProfile(t *testing.T) {
 	baseConfigPath := t.TempDir()
 
-	resolvedAddress, resolvedPort, resolvedPassword, err := Resolve(
+	resolveProfile, err := Resolve(
 		baseConfigPath,
 		"",
-		DefaultAddr,
-		DefaultPort,
-		"",
+		Profile{
+			Address:  DefaultAddr,
+			Port:     DefaultPort,
+			Password: "",
+		},
 	)
 	if err != nil {
 		t.Fatal(errors.Join(errors.New("unexpected resolve error"), err))
 	}
-	if resolvedAddress != DefaultAddr {
-		t.Errorf("expected default address %s, but got %s", DefaultAddr, resolvedAddress)
+	if resolveProfile.Address != DefaultAddr {
+		t.Errorf("expected default address %s, but got %s", DefaultAddr, resolveProfile.Address)
 	}
-	if resolvedPort != DefaultPort {
-		t.Errorf("expected default port %d, but got %d", DefaultPort, resolvedPort)
+	if resolveProfile.Port != DefaultPort {
+		t.Errorf("expected default port %d, but got %d", DefaultPort, resolveProfile.Port)
 	}
-	if resolvedPassword != "" {
-		t.Errorf("expected empty password, but got %s", resolvedPassword)
+	if resolveProfile.Password != "" {
+		t.Errorf("expected empty password, but got %s", resolveProfile.Password)
 	}
 }
 
