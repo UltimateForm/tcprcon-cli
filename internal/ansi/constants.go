@@ -1,6 +1,10 @@
 package ansi
 
 const (
+	ArrowKeyUp     = "\033[A"
+	ArrowKeyDown   = "\033[B"
+	PageUpKey      = "\033[5~"
+	PageDownKey    = "\033[6~"
 	ClearScreen    = "\033[2J"
 	CursorHome     = "\033[H"
 	CursorToPos    = "\033[%d;%dH" // use with fmt.Sprintf, the two ds are for the row and column coordinates

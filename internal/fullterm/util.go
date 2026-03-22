@@ -15,3 +15,7 @@ func constructCmdLine(newByte byte, cmdLine []byte) ([]byte, bool) {
 	}
 	return cmdLine, isSubmission
 }
+
+func clamp(minBound int, n int, maxBound int) int {
+	return max(minBound, min(maxBound, n))
+}

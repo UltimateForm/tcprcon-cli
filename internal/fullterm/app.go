@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -20,10 +21,13 @@ type app struct {
 	stdinChannel     chan byte
 	fd               int
 	prevState        *term.State
-	cmdLine          []byte
 	content          []string
 	commandSignature string
 	once             sync.Once
+	ansiMachine      stdinAnsi
+	history          [][]byte
+	historyCursor    int
+	scrollOffset     int
 }
 
 func (src *app) Write(bytes []byte) (int, error) {
@@ -47,15 +51,29 @@ func (src *app) ListenStdin(context context.Context) {
 		}
 	}
 }
+
+func (src *app) setHistoryTail(b []byte) {
+	src.history[len(src.history)-1] = b
+}
+
+func (src *app) historyTail() []byte {
+	return src.history[len(src.history)-1]
+}
+
+func (src *app) currentCmd() []byte {
+	return src.history[src.historyCursor]
+}
+
 func (src *app) Submissions() <-chan string {
 	return src.submissionChan
 }
 
-func visibleContent(content []string, height int) []string {
+func visibleContent(content []string, height int, scrollOffset int) []string {
 	currentRows := len(content)
+	endRow := max(currentRows-scrollOffset, 0)
 	// ngl i forgot why we adding plus 1.. oh well
-	startRow := max(currentRows-(height+1), 0)
-	return content[startRow:]
+	startRow := max(endRow-(height+1), 0)
+	return content[startRow:endRow]
 }
 
 func formatCommandEcho(cmd string) string {
@@ -70,7 +88,7 @@ func (src *app) DrawContent(finalDraw bool) error {
 	if !finalDraw {
 		fmt.Print(ansi.ClearScreen + ansi.CursorHome)
 	}
-	drawableRows := visibleContent(src.content, height)
+	drawableRows := visibleContent(src.content, height, src.scrollOffset)
 	for i := range drawableRows {
 		fmt.Print(drawableRows[i])
 	}
@@ -79,9 +97,16 @@ func (src *app) DrawContent(finalDraw bool) error {
 		return nil
 	}
 	ansi.MoveCursorTo(height, 0)
+	if src.scrollOffset > 0 {
+		fmt.Print(ansi.Format(fmt.Sprintf("[↑ %d] ", src.scrollOffset), ansi.Yellow, ansi.Bold))
+	}
 	fmt.Printf(ansi.Format("%v> ", ansi.Blue), src.commandSignature)
-	fmt.Print(string(src.cmdLine))
+	fmt.Print(string(src.currentCmd()))
 	return nil
+}
+
+func (src *app) traverseHistory(delta int) {
+	src.historyCursor = clamp(0, src.historyCursor+delta, len(src.history)-1)
 }
 
 func (src *app) Run(context context.Context) error {
@@ -122,19 +147,57 @@ func (src *app) Run(context context.Context) error {
 		case <-context.Done():
 			return nil
 		case newStdinInput := <-src.stdinChannel:
-			newCmd, isSubmission := constructCmdLine(newStdinInput, src.cmdLine)
-			if isSubmission {
-				src.content = append(src.content, formatCommandEcho(string(newCmd)))
-				src.cmdLine = []byte{}
-				src.submissionChan <- string(newCmd)
-			} else {
-				src.cmdLine = newCmd
+			ansiSeq, ansiState := src.ansiMachine.handle(newStdinInput)
+			// src.content = append(src.content, fmt.Sprintf("ansi machine handling %v, at state %v\n", ansiSeq, ansiState))
+			switch ansiState {
+			case ansiStateIdle:
+				// no ansi sequence ongoing so its just presentation bytes
+				newCmd, isSubmission := constructCmdLine(newStdinInput, src.currentCmd())
+				if isSubmission {
+					src.content = append(src.content, formatCommandEcho(string(newCmd)))
+					if len(src.historyTail()) > 0 {
+						src.history = append(src.history, []byte{})
+					}
+					src.scrollOffset = 0
+					src.submissionChan <- string(newCmd)
+				} else {
+					src.setHistoryTail(newCmd)
+				}
+				// feel a bit awkward doing this every input stroke, we can get back to it later
+				src.historyCursor = len(src.history) - 1
+			case ansiStateCSITerm:
+				switch string(ansiSeq) {
+				case ansi.ArrowKeyUp:
+					src.traverseHistory(-1)
+				case ansi.ArrowKeyDown:
+					src.traverseHistory(1)
+				case ansi.PageUpKey:
+					if _, h, err := term.GetSize(src.fd); err == nil {
+						maxOffset := max(len(src.content)-(h+1), 0)
+						// substract one cuz we need to account for persistent command line
+						src.scrollOffset = min(src.scrollOffset+h-1, maxOffset)
+					} else {
+						// TODO: do something here idk
+					}
+				case ansi.PageDownKey:
+					if _, h, err := term.GetSize(src.fd); err == nil {
+						// ditto subtraction
+						src.scrollOffset = max(src.scrollOffset-(h-1), 0)
+					}
+				default:
+					// src.content = append(src.content, fmt.Sprintf("unhandled csi %v, %v\n", strconv.Itoa(int(ansiState)), ansiSeq))
+				}
+			default:
+				// src.content = append(src.content, fmt.Sprintf("unhandled state %v, %v\n", strconv.Itoa(int(ansiState)), ansiSeq))
 			}
+
 			if err := src.DrawContent(false); err != nil {
 				return err
 			}
 		case newDisplayInput := <-src.DisplayChannel:
-			src.content = append(src.content, newDisplayInput)
+			for line := range strings.Lines(newDisplayInput) {
+				src.content = append(src.content, line)
+			}
 			if err := src.DrawContent(false); err != nil {
 				return err
 			}
@@ -164,5 +227,8 @@ func CreateApp(commandSignature string) *app {
 		submissionChan:   submissionChan,
 		content:          make([]string, 0),
 		commandSignature: commandSignature,
+		ansiMachine:      newStdinAnsi(),
+		history:          [][]byte{[]byte{}},
+		historyCursor:    0,
 	}
 }
