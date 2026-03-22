@@ -4,6 +4,10 @@
   - [Local Development](#local-development)
   - [Features](#features)
   - [Installation](#installation)
+    - [Binary](#binary)
+    - [Docker](#docker)
+    - [Go](#go)
+    - [Windows](#windows)
   - [Usage](#usage)
     - [Interactive Mode](#interactive-mode)
     - [Single Command Mode](#single-command-mode)
@@ -79,6 +83,18 @@ You can use the provided `Makefile` and `compose.yaml` to spin up a local develo
 
 ## Installation
 
+### Binary
+
+Linux binaries are available on the [releases page](https://github.com/UltimateForm/tcprcon-cli/releases/latest).
+
+### Docker
+
+```bash
+docker run -it ghcr.io/ultimateform/tcprcon-cli:latest --address=192.168.1.100 --port=7778
+```
+
+### Go
+
 ```bash
 go install github.com/UltimateForm/tcprcon-cli@latest
 ```
@@ -92,6 +108,12 @@ git clone https://github.com/UltimateForm/tcprcon-cli.git
 cd tcprcon-cli
 go build -o tcprcon-cli .
 ```
+
+### Windows
+
+Windows is not natively supported due to Unix-specific terminal dependencies. Use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) or the Docker image above.
+
+Might change my mind about supporting windows in the future but given that this is essentially a CLI app windows is kind of an after thought for me... and there's likely a better UI app for windows out there.
 
 ## Usage
 
