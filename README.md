@@ -161,7 +161,7 @@ tcprcon-cli --profile="my_server" --port=27015
 
 ## Protocol Compliance
 
-While `tcprcon-cli` follows the standard Source RCON Protocol, some game servers (like Rust) have non-standard implementations that might cause unexpected behavior, such as duplicated responses or incorrect packet IDs, the cli should still work, you might just have to deal with an overly chatty server.
+While `tcprcon-cli` follows the standard Source RCON Protocol, some game servers (like Rust) have non-standard implementations that might introduce unexpected behaviors, such as duplicated responses or incorrect packet IDs, the cli should still work, you might just have to deal with an overly chatty server.
 
 For a detailed breakdown of known server quirks and how they are handled, see the [Caveats section in the core library documentation](https://github.com/UltimateForm/tcprcon#caveats).
 

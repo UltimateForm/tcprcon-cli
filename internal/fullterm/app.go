@@ -100,7 +100,7 @@ func (src *app) DrawContent(finalDraw bool) error {
 	if src.scrollOffset > 0 {
 		fmt.Print(ansi.Format(fmt.Sprintf("[↑ %d] ", src.scrollOffset), ansi.Yellow, ansi.Bold))
 	}
-	fmt.Printf(ansi.Format("%v> (%v) (%v)", ansi.Blue), src.commandSignature, height, len(src.content))
+	fmt.Printf(ansi.Format("%v> ", ansi.Blue), src.commandSignature)
 	fmt.Print(string(src.currentCmd()))
 	return nil
 }
