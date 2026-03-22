@@ -8,24 +8,6 @@ import (
 	"path/filepath"
 )
 
-type Profile struct {
-	Address  string `json:"address"`
-	Port     uint   `json:"port"`
-	Password string `json:"password,omitempty"` // omitempty so we don't save empty strings
-}
-
-type Config struct {
-	Profiles map[string]Profile `json:"profiles"`
-	// profiles could be root but preparing for potential expansion, jic
-}
-
-const (
-	configDirName  = "tcprcon"
-	configFileName = "config.json"
-	DefaultAddr    = "localhost"
-	DefaultPort    = 7778
-)
-
 func BuildConfigPath(basePath string) (string, error) {
 	if basePath == "" {
 		return "", ErrUndefinedConfigBasePath
@@ -99,35 +81,37 @@ func (source *Config) SetProfile(name string, p Profile) {
 	source.Profiles[name] = p
 }
 
-func Resolve(configBasePath string, profileName string, addrFlag string, portFlag uint, pwFlag string) (string, uint, string, error) {
+func Resolve(configBasePath string, profileName string, prof Profile) (Profile, error) {
 	cfg, err := Load(configBasePath)
 	if err != nil {
-		return "", 0, "", err
+		return Profile{}, err
 	}
-
-	finalAddr := addrFlag
-	finalPort := portFlag
-	finalPw := pwFlag
 
 	if profileName != "" {
 		p, ok := cfg.GetProfile(profileName)
 		if !ok {
-			return "", 0, "", fmt.Errorf("profile '%s' not found", profileName)
+			return Profile{}, fmt.Errorf("profile '%s' not found", profileName)
 		}
 
 		// only override if the flags are still at their default values
 		// NOTE: this logic assumes defaults are "localhost", 7778, and ""
 		// TODO: this "default" handling can introduce bugs, rethink this at some point
-		if finalAddr == DefaultAddr && p.Address != "" {
-			finalAddr = p.Address
+		if prof.Address == DefaultAddr && p.Address != "" {
+			prof.Address = p.Address
 		}
-		if finalPort == DefaultPort && p.Port != 0 {
-			finalPort = p.Port
+		if prof.Port == DefaultPort && p.Port != 0 {
+			prof.Port = p.Port
 		}
-		if finalPw == "" && p.Password != "" {
-			finalPw = p.Password
+		if prof.Password == "" && p.Password != "" {
+			prof.Password = p.Password
+		}
+		if prof.Pulse == "" && p.Pulse != "" {
+			prof.Pulse = p.Pulse
+		}
+		if prof.PulseInterval == DefaultPulseInterval && p.PulseInterval != 0 {
+			prof.PulseInterval = p.PulseInterval
 		}
 	}
 
-	return finalAddr, finalPort, finalPw, nil
+	return prof, nil
 }

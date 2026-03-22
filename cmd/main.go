@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/UltimateForm/tcprcon-cli/internal/ansi"
 	"github.com/UltimateForm/tcprcon-cli/internal/config"
@@ -26,6 +27,8 @@ var logLevelParam uint
 var inputCmdParam string
 var saveParam string
 var profileParam string
+var pulseParam string
+var pulseIntervalParam time.Duration
 
 func init() {
 	flag.StringVar(&addressParam, "address", config.DefaultAddr, "RCON address, excluding port")
@@ -35,6 +38,8 @@ func init() {
 	flag.StringVar(&inputCmdParam, "cmd", "", "command to execute, if provided will not enter into interactive mode")
 	flag.StringVar(&saveParam, "save", "", "saves current connection parameters as a profile, value is the profile name")
 	flag.StringVar(&profileParam, "profile", "", "loads a saved profile by name, overriding default flags but overridden by explicit flags")
+	flag.StringVar(&pulseParam, "pulse", "", "the keepalive method, a command to be invoked on schedule (pulse-interval param) in order to keep connection alive")
+	flag.DurationVar(&pulseIntervalParam, "pulse-interval", config.DefaultPulseInterval, "the keepalive method interval, use format 2s/1m")
 }
 
 func determinePassword(currentPw string) (string, error) {
@@ -109,21 +114,25 @@ func Execute() {
 	if err != nil {
 		logger.Critical.Fatal(err)
 	}
-	resolvedAddress, resolvedPort, resolvedPassword, err := config.Resolve(
+	resolvedProfile, err := config.Resolve(
 		configBasePath,
 		profileParam,
-		addressParam,
-		portParam,
-		passwordParam,
+		config.Profile{
+			Address:       addressParam,
+			Port:          portParam,
+			Password:      passwordParam,
+			Pulse:         pulseParam,
+			PulseInterval: pulseIntervalParam,
+		},
 	)
 	if err != nil {
 		logger.Critical.Fatal(err)
 	}
 
-	logger.Debug.Printf("resolved parameters: address=%v, port=%v, pw=%v, log=%v, cmd=%v\n", resolvedAddress, resolvedPort, resolvedPassword != "", logLevelParam, inputCmdParam)
+	logger.Debug.Printf("resolved parameters: address=%v, port=%v, pw=%v, log=%v, cmd=%v, pulse=%v, pulseInterval=%v\n", resolvedProfile.Address, resolvedProfile.Port, resolvedProfile.Password != "", logLevelParam, inputCmdParam, resolvedProfile.Pulse, resolvedProfile.PulseInterval)
 
-	fullAddress := resolvedAddress + ":" + strconv.Itoa(int(resolvedPort))
-	password, err := determinePassword(resolvedPassword)
+	fullAddress := resolvedProfile.Address + ":" + strconv.Itoa(int(resolvedProfile.Port))
+	password, err := determinePassword(resolvedProfile.Password)
 	if err != nil {
 		logger.Critical.Fatal(err)
 	}
@@ -136,8 +145,10 @@ func Execute() {
 		}
 
 		newProfile := config.Profile{
-			Address: resolvedAddress,
-			Port:    resolvedPort,
+			Address:       resolvedProfile.Address,
+			Port:          resolvedProfile.Port,
+			Pulse:         resolvedProfile.Pulse,
+			PulseInterval: resolvedProfile.PulseInterval,
 		}
 
 		reader := bufio.NewReader(os.Stdin)
@@ -162,7 +173,7 @@ func Execute() {
 		// TODO: consider exiting here if user calls cli with "save" param, maybe he just setting profile and dont want to run the full thing idk
 	}
 
-	logger.Debug.Printf("Dialing %v at port %v\n", resolvedAddress, resolvedPort)
+	logger.Debug.Printf("Dialing %v at port %v\n", resolvedProfile.Address, resolvedProfile.Port)
 	rconClient, err := rcon.New(fullAddress)
 	if err != nil {
 		logger.Critical.Fatal(err)
@@ -189,6 +200,13 @@ func Execute() {
 		// could just rely on early return but i feel anxious :D
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		runRconTerminal(rconClient, ctx, logLevel)
+		runRconTerminal(
+			ctx,
+			rconClient,
+			logLevel,
+			profileParam,
+			resolvedProfile.Pulse,
+			resolvedProfile.PulseInterval,
+		)
 	}
 }
