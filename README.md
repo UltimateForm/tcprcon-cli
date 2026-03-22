@@ -10,6 +10,7 @@
     - [Using Environment Variable for Password](#using-environment-variable-for-password)
   - [Configuration Profiles](#configuration-profiles)
   - [CLI Flags](#cli-flags)
+  - [Interactive UX](#interactive-ux)
   - [Protocol Compliance](#protocol-compliance)
   - [Using as a Library](#using-as-a-library)
     - [Streaming Responses](#streaming-responses)
@@ -158,6 +159,20 @@ tcprcon-cli --profile="my_server" --port=27015
   -save string
     	saves current connection parameters as a profile. Value is the profile name.
 ```
+
+## Interactive UX
+
+The interactive terminal UI supports the following keyboard controls:
+
+| Key | Action |
+|-----|--------|
+| `Enter` | Submit command |
+| `Backspace` | Delete last character |
+| `↑` / `↓` | Navigate command history |
+| `Page Up` | Scroll output up one page |
+| `Page Down` | Scroll output down one page |
+
+When scrolled up, a `[↑ N]` indicator is shown in the prompt line, where `N` is the number of lines scrolled above the bottom. Submitting a command snaps the view back to the bottom.
 
 ## Protocol Compliance
 
