@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -26,6 +27,7 @@ type app struct {
 	ansiMachine      stdinAnsi
 	history          [][]byte
 	historyCursor    int
+	scrollOffset     int
 }
 
 func (src *app) Write(bytes []byte) (int, error) {
@@ -66,11 +68,12 @@ func (src *app) Submissions() <-chan string {
 	return src.submissionChan
 }
 
-func visibleContent(content []string, height int) []string {
+func visibleContent(content []string, height int, scrollOffset int) []string {
 	currentRows := len(content)
+	endRow := max(currentRows-scrollOffset, 0)
 	// ngl i forgot why we adding plus 1.. oh well
-	startRow := max(currentRows-(height+1), 0)
-	return content[startRow:]
+	startRow := max(endRow-(height+1), 0)
+	return content[startRow:endRow]
 }
 
 func formatCommandEcho(cmd string) string {
@@ -85,7 +88,7 @@ func (src *app) DrawContent(finalDraw bool) error {
 	if !finalDraw {
 		fmt.Print(ansi.ClearScreen + ansi.CursorHome)
 	}
-	drawableRows := visibleContent(src.content, height)
+	drawableRows := visibleContent(src.content, height, src.scrollOffset)
 	for i := range drawableRows {
 		fmt.Print(drawableRows[i])
 	}
@@ -94,7 +97,10 @@ func (src *app) DrawContent(finalDraw bool) error {
 		return nil
 	}
 	ansi.MoveCursorTo(height, 0)
-	fmt.Printf(ansi.Format("%v> ", ansi.Blue), src.commandSignature)
+	if src.scrollOffset > 0 {
+		fmt.Print(ansi.Format(fmt.Sprintf("[↑ %d] ", src.scrollOffset), ansi.Yellow, ansi.Bold))
+	}
+	fmt.Printf(ansi.Format("%v> (%v) (%v)", ansi.Blue), src.commandSignature, height, len(src.content))
 	fmt.Print(string(src.currentCmd()))
 	return nil
 }
@@ -152,6 +158,7 @@ func (src *app) Run(context context.Context) error {
 					if len(src.historyTail()) > 0 {
 						src.history = append(src.history, []byte{})
 					}
+					src.scrollOffset = 0
 					src.submissionChan <- string(newCmd)
 				} else {
 					src.setHistoryTail(newCmd)
@@ -165,9 +172,18 @@ func (src *app) Run(context context.Context) error {
 				case ansi.ArrowKeyDown:
 					src.traverseHistory(1)
 				case ansi.PageUpKey:
-				//tbd
+					if _, h, err := term.GetSize(src.fd); err == nil {
+						maxOffset := max(len(src.content)-(h+1), 0)
+						// substract one cuz we need to account for persistent command line
+						src.scrollOffset = min(src.scrollOffset+h-1, maxOffset)
+					} else {
+						// TODO: do something here idk
+					}
 				case ansi.PageDownKey:
-				//tbd
+					if _, h, err := term.GetSize(src.fd); err == nil {
+						// ditto subtraction
+						src.scrollOffset = max(src.scrollOffset-(h-1), 0)
+					}
 				default:
 					// src.content = append(src.content, fmt.Sprintf("unhandled csi %v, %v\n", strconv.Itoa(int(ansiState)), ansiSeq))
 				}
@@ -179,7 +195,9 @@ func (src *app) Run(context context.Context) error {
 				return err
 			}
 		case newDisplayInput := <-src.DisplayChannel:
-			src.content = append(src.content, newDisplayInput)
+			for line := range strings.Lines(newDisplayInput) {
+				src.content = append(src.content, line)
+			}
 			if err := src.DrawContent(false); err != nil {
 				return err
 			}
