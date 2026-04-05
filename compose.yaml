@@ -19,8 +19,8 @@ services:
       start_period: 30s
     volumes:
       - linuxgsm-mh:/data
-      - .serverdata/mh/common.cfg:/data/config-lgsm/mhserver/common.cfg
-      - .serverdata/mh/Game.ini:/data/serverfiles/Mordhau/Saved/Config/LinuxServer/Game.ini
+      - .serverdata/mh/common.cfg:/data/config-lgsm/mhserver/common.cfg:Z
+      - .serverdata/mh/Game.ini:/data/serverfiles/Mordhau/Saved/Config/LinuxServer/Game.ini:Z
 
   rust-server:
     image: ghcr.io/gameservermanagers/gameserver:rust
@@ -36,7 +36,7 @@ services:
       start_period: 30s
     volumes:
       - linuxgsm-rust:/data
-      - .serverdata/rust/common.cfg:/data/config-lgsm/rustserver/common.cfg
+      - .serverdata/rust/common.cfg:/data/config-lgsm/rustserver/common.cfg:Z
     network_mode: host
 
 volumes:

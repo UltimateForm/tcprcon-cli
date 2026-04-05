@@ -15,7 +15,6 @@ import (
 	"github.com/UltimateForm/tcprcon-cli/internal/config"
 	"github.com/UltimateForm/tcprcon/pkg/common_rcon"
 	"github.com/UltimateForm/tcprcon/pkg/logger"
-	"github.com/UltimateForm/tcprcon/pkg/packet"
 	"github.com/UltimateForm/tcprcon/pkg/rcon"
 	"golang.org/x/term"
 )
@@ -82,28 +81,6 @@ func determinePassword(currentPw string) (string, error) {
 		password = string(stdinbytes)
 	}
 	return password, nil
-}
-
-func execInputCmd(rcon *rcon.Client) error {
-	logger.Debug.Println("executing input command: " + inputCmdParam)
-	execPacket := packet.New(rcon.Id(), packet.SERVERDATA_EXECCOMMAND, []byte(inputCmdParam))
-	fmt.Printf(
-		"(%v): SND CMD %v\n",
-		ansi.Format(strconv.Itoa(int(rcon.Id())), ansi.Green, ansi.Bold),
-		ansi.Format(inputCmdParam, ansi.Blue),
-	)
-	rcon.Write(execPacket.Serialize())
-	packetRes, err := packet.Read(rcon)
-	if err != nil {
-		return errors.Join(errors.New("error while reading from RCON client"), err)
-	}
-	fmt.Printf(
-		"(%v): RCV PKT %v\n%v\n",
-		ansi.Format(strconv.Itoa(int(rcon.Id())), ansi.Green, ansi.Bold),
-		ansi.Format(strconv.Itoa(int(packetRes.Type)), ansi.Green, ansi.Bold),
-		ansi.Format(strings.TrimRight(packetRes.BodyStr(), "\n\r"), ansi.Green),
-	)
-	return nil
 }
 
 func Execute() {
@@ -191,15 +168,16 @@ func Execute() {
 		return
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	if inputCmdParam != "" {
-		if err := execInputCmd(rconClient); err != nil {
+		if err := execInputCmd(ctx, rconClient); err != nil {
 			logger.Critical.Println(err)
 		}
 		return
 	} else {
 		// could just rely on early return but i feel anxious :D
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
 		runRconTerminal(
 			ctx,
 			rconClient,
