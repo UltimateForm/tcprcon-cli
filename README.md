@@ -61,10 +61,16 @@ All flags and commands from the main [Usage](#usage) section apply here—just p
 docker run -it ghcr.io/ultimateform/tcprcon-cli:latest --address=192.168.1.100 --port=7778
 ```
 
-**Note on Local Servers:** If running the RCON server on the same machine as the Docker container, add `--network=host` to allow the container to connect via `localhost`:
+**Note on Local Servers:** If running the RCON server on the same machine as the Docker container, you need to use either `--network=host` or `host.docker.internal`:
 
 ```bash
+# Option 1: Use host network
 docker run -it --network=host ghcr.io/ultimateform/tcprcon-cli:latest --address=localhost --port=7778
+```
+
+```bash
+# Option 2: Use host.docker.internal (without --network=host)
+docker run -it ghcr.io/ultimateform/tcprcon-cli:latest --address=host.docker.internal --port=7778
 ```
 
 #### Persistent Configuration (Profiles)
