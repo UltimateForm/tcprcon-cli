@@ -61,6 +61,12 @@ All flags and commands from the main [Usage](#usage) section apply here—just p
 docker run -it ghcr.io/ultimateform/tcprcon-cli:latest --address=192.168.1.100 --port=7778
 ```
 
+**Note on Local Servers:** If running the RCON server on the same machine as the Docker container, add `--network=host` to allow the container to connect via `localhost`:
+
+```bash
+docker run -it --network=host ghcr.io/ultimateform/tcprcon-cli:latest --address=localhost --port=7778
+```
+
 #### Persistent Configuration (Profiles)
 
 **Note:** `tcprcon-cli` supports configuration profiles out of the box (see [Configuration Profiles](#configuration-profiles)). However, when using Docker, profiles are stored inside the container and lost when it exits. To persist profiles across container runs, use a Docker named volume:
