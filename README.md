@@ -128,7 +128,7 @@ go build -o tcprcon-cli .
 
 ### Windows
 
-Windows is not natively supported due to Unix-specific terminal dependencies. Use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) or the Docker image above.
+Windows is not natively supported due to Unix-specific terminal dependencies. Use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) or the Docker image above. If you install via Go it might still somewhat work, the single command execution at least.
 
 Might change my mind about supporting windows in the future but given that this is essentially a CLI app windows is kind of an after thought for me... and there's likely a better UI app for windows out there.
 
@@ -175,7 +175,7 @@ tcprcon-cli --address=192.168.1.100
 
 ## Configuration Profiles
 
-`tcprcon-cli` supports saving and loading connection profiles to a local configuration file, located at `~/.config/tcprcon/config.json` on Linux/macOS or `%AppData%\tcprcon\config.json` on Windows.
+`tcprcon-cli` supports saving and loading connection profiles to a local configuration file, located at `~/.config/tcprcon/config.json` on Linux/macOS or `%AppData%\tcprcon\config.json` on Windows (although remember that Windows support is limited).
 
 ### Saving a Profile
 
