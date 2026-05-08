@@ -113,7 +113,7 @@ tcprcon-cli --profile="my_server"
 ### Go
 
 ```bash
-go install github.com/UltimateForm/tcprcon-cli@latest
+go install github.com/UltimateForm/tcprcon-cli@v1.2.2
 ```
 
 Or build from source:
